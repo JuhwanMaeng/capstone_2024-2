@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트리 차트</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+        .node rect {
+            stroke-width: 3px;
+        }
+        .node text {
+            font: 12px sans-serif;
+            fill: #fff;
+        }
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+        }
+    </style>
+    <script src="/static/main.js" defer></script>
+</head>
+<body>
+    <div style="display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh;">
+        <h1>스토리 라인 그래프</h1>
+        <nav>
+            <ul style="list-style: none; display: flex; gap: 20px;">
+                <li><a href="/">홈으로</a></li>
+                <li><a href="/scatter">Scatter Plot</a></li>
+                <li><a href="/radar">Radar Chart</a></li>
+            </ul>
+        </nav>
+        <!-- Tree Chart 영역 -->
+        <div id="tree-chart" style="width:960px;height:500px;"></div>
+    </div>
+</body>
+</html>

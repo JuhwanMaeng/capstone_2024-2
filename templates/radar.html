@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>캡스톤디자인 테스트</title>
+    <title>Radar Chart</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="/static/main.js" defer></script>
 </head>
 <body>
     <div style="display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh;">
-        <h1>캡스톤디자인 테스트</h1>
+        <h1>캐릭터별 특성</h1>
         <nav>
+            <ul style="list-style: none; display: flex; gap: 20px;">
+                <li><a href="/">홈으로</a></li>
                 <li><a href="/tree">Tree Chart</a></li>
                 <li><a href="/scatter">Scatter Plot</a></li>
-                <li><a href="/radar">Radar Chart</a></li>
             </ul>
         </nav>
+        <!-- Radar Chart 영역 -->
+        <div id="radar-chart" style="width:50%;height:50vh;"></div>
     </div>
 </body>
 </html>
