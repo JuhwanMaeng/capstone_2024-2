@@ -40,6 +40,11 @@ async def get_scatter_plot(request: Request):
 async def get_radar_chart(request: Request):
     return templates.TemplateResponse("radar.html", {"request": request})
 
+# Vis.js 네트워크 그래프 페이지
+@app.get("/graph", response_class=HTMLResponse)
+async def get_graph_page(request: Request):
+    return templates.TemplateResponse("graph.html", {"request": request})
+
 # 데이터를 반환하는 API 엔드포인트
 @app.get("/scatter_data")
 async def get_scatter_data():
@@ -100,6 +105,32 @@ async def get_tree_data():
         ]
     }
     return tree_data
+
+@app.get("/graph_data")
+async def get_graph_data():
+    names = ["Marta Cabrera", "Harlan Thrombey", "Ransom Drysdale", "Linda Drysdale", "Benoit Blanc"]
+    nodes = [
+        {"id": 1, "shape": "circularImage", "image": "/static/img/1.png", "label": names[0]},
+        {"id": 2, "shape": "circularImage", "image": "/static/img/2.png", "label": names[1]},
+        {"id": 3, "shape": "circularImage", "image": "/static/img/3.png", "label": names[2]},
+        {"id": 4, "shape": "circularImage", "image": "/static/img/4.png", "label": names[3]},
+        {"id": 5, "shape": "circularImage", "image": "/static/img/5.png", "label": names[4]},
+    ]
+    edges = [
+        {"from": 1, "to": 2},
+        {"from": 1, "to": 3},
+        {"from": 1, "to": 4},
+        {"from": 1, "to": 5},
+        {"from": 2, "to": 3},
+        {"from": 2, "to": 4},
+        {"from": 2, "to": 5},
+        {"from": 3, "to": 4},
+        {"from": 3, "to": 5},
+        {"from": 4, "to": 5},
+    ]
+    return {"nodes": nodes, "edges": edges}
+
+
 
 
 if __name__ == "__main__":
