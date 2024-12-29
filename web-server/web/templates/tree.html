@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스토리 라인 그래프</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        nav {
+            width: 100%;
+            background: #333;
+            color: white;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 20px;
+        }
+        nav ul li a {
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+        }
+        .chart-container {
+            width: 90%;
+            height: 250px;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden; /* 컨테이너 영역 제한 */
+            display: flex;
+            justify-content: flex-start;
+            background-color: #f9f9f9;
+        }
+        #chart-wrapper {
+            display: flex;
+            position: relative;
+            transition: transform 0.1s ease;
+        }
+        .scroll-bar-container {
+            width: 90%;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+        }
+        .scroll-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+            position: relative;
+        }
+        .scroll-thumb {
+            width: 100px; /* 기본 길이 */
+            height: 10px;
+            background-color: #4A90E2;
+            border-radius: 5px;
+            position: absolute;
+            cursor: pointer;
+        }
+        svg {
+            background-color: #fff;
+        }
+        .node {
+            fill: #4A90E2;
+            stroke: #000;
+            stroke-width: 2px;
+        }
+        .link {
+            stroke: #ccc;
+            stroke-width: 2px;
+            fill: none;
+        }
+        .label-title {
+            font-size: 14px;
+            text-anchor: middle;
+            fill: #000;
+            font-weight: bold;
+        }
+        /* 선택된 노드 정보를 표시할 영역 */
+#selected-node-container {
+    width: 80%;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: left;
+}
+
+
+#simulate-prompt-container {
+    width: 80%;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* 노드 정보 박스 스타일링 */
+.selected-node-box {
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+/* 제목 스타일 */
+.selected-node-box h3 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+/* 텍스트 스타일 */
+.selected-node-box p {
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0;
+}
+
+.selected-node-box p strong {
+    color: #333;
+}
+
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">홈으로</a></li>
+            <li><a href="/scatter">이야기 전개 조절 그래프</a></li>
+            <li><a href="/radar">캐릭터 성격 차트</a></li>
+            <li><a href="/graph">인물 관계도</a></li>
+        </ul>
+    </nav>
+
+    <h1>스토리 라인 그래프</h1>
+    <div class="chart-container" id="chart-container">
+        <div id="chart-wrapper">
+            <svg id="flow-chart" height="400"></svg>
+        </div>
+    </div>
+    <div class="scroll-bar-container">
+        <div class="scroll-bar" id="scroll-bar">
+            <div class="scroll-thumb" id="scroll-thumb"></div>
+        </div>
+    </div>
+
+    <script>
+        async function drawFlowChart() {
+            try {
+        const response = await fetch('http://129.80.153.177:5000/tree_data');
+        const treeData = await response.json();
+
+        if (!treeData.children) {
+            document.getElementById("flow-chart").innerHTML = "<p>데이터를 가져오지 못했습니다.</p>";
+            return;
+        }
+
+        const data = treeData.children;
+
+        const nodeWidth = 150 * 3; 
+        const nodeHeight = 150; // 높이 약간 증가
+        const nodeSpacing = 200; // 노드 간 간격
+        const verticalSpacing = 100; // 수직 간격
+        const width = nodeWidth * data.length + nodeSpacing * (data.length - 1) + nodeWidth; // 오른쪽 여백 추가
+        const height = data.length * verticalSpacing;
+
+        const svg = d3.select("#flow-chart")
+            .attr("width", width)
+            .attr("height", height);
+
+        // 노드 데이터 위치 계산
+        const nodes = data.map((d, i) => ({
+    ...d,
+    x: i * (nodeWidth + nodeSpacing) + nodeWidth / 2, // 왼쪽 여백 추가
+    y: 50, // 모든 노드가 왼쪽 기준으로 수평 배치
+}));
+
+        // 링크 데이터 생성
+        const links = nodes.slice(1).map((node, i) => ({
+            source: nodes[i],
+            target: node,
+        }));
+
+        // 링크 그리기
+        svg.selectAll(".link")
+            .data(links)
+            .enter()
+            .append("line")
+            .attr("class", "link")
+            .attr("x1", d => d.source.x + nodeWidth / 2)
+            .attr("y1", d => d.source.y + nodeHeight / 2)
+            .attr("x2", d => d.target.x + nodeWidth / 2)
+            .attr("y2", d => d.target.y + nodeHeight / 2)
+            .attr("stroke", "#ccc")
+            .attr("stroke-width", 2);
+
+        // 노드 및 텍스트 추가
+        const nodeGroups = svg.selectAll(".node-group")
+            .data(nodes)
+            .enter()
+            .append("g")
+            .attr("class", "node-group")
+            .attr("transform", d => `translate(${d.x}, ${d.y})`);
+
+        // 노드 배경 그리기
+        nodeGroups.append("rect")
+            .attr("class", "node")
+            .attr("width", nodeWidth)
+            .attr("height", nodeHeight)
+            .attr("fill", "#69b3a2")
+            .attr("stroke", "#333")
+            .attr("stroke-width", 2);
+
+        // 노드 제목 추가
+        nodeGroups.append("text")
+            .attr("class", "label-title")
+            .attr("x", nodeWidth / 2)
+            .attr("y", 20)
+            .text(d => d.name)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "14px")
+            .attr("fill", "#000")
+            .attr("font-weight", "bold");
+
+        // 노드 상세 내용 추가 (Summary, Setting, Participants)
+nodeGroups.each(function (d) {
+    const group = d3.select(this);
+
+    const summary = `Summary: ${d.children.find(c => c.name === "Summary")?.value || "Not Found"}`;
+    const setting = `Setting: ${d.children.find(c => c.name === "Setting")?.value || "Not Found"}`;
+    const participants = `Participants: ${d.children
+        .filter(c => c.name === "Participant")
+        .map(c => c.value)
+        .join(", ") || "Not Found"}`;
+
+    // Summary 텍스트 추가
+    let currentY = 40; // Summary 시작 y좌표
+    const lineHeight = 14; // 줄 높이
+    const maxWidth = nodeWidth - 20; // 텍스트 최대 너비
+    let lineNumber = 0;
+
+    const summaryGroup = group.append("text")
+        .attr("x", 10)
+        .attr("y", currentY)
+        .attr("font-size", "12px")
+        .attr("fill", "#000")
+        .attr("font-weight", "bold");
+
+    const words = summary.split(/\s+/);
+    let line = [];
+    let tspan = summaryGroup.append("tspan").attr("x", 10).attr("y", currentY);
+
+    words.forEach(word => {
+        line.push(word);
+        tspan.text(line.join(" "));
+        if (tspan.node().getComputedTextLength() > maxWidth) {
+            line.pop();
+            tspan.text(line.join(" "));
+            line = [word];
+            currentY += lineHeight; // 줄 높이 추가
+            lineNumber++;
+            tspan = summaryGroup.append("tspan").attr("x", 10).attr("y", currentY).text(word);
+        }
+    });
+
+    // Setting 텍스트 추가 (Summary 아래에 배치)
+    currentY += lineHeight + 10; // Summary의 끝 + 간격
+    group.append("text")
+        .attr("x", 10)
+        .attr("y", currentY)
+        .attr("font-size", "12px")
+        .attr("fill", "#000")
+        .attr("font-weight", "bold")
+        .text(setting);
+
+    // Participants 텍스트 추가 (Setting 아래에 배치)
+    currentY += lineHeight + 10; // Setting의 끝 + 간격
+    group.append("text")
+        .attr("x", 10)
+        .attr("y", currentY)
+        .attr("font-size", "12px")
+        .attr("fill", "#000")
+        .attr("font-weight", "bold")
+        .text(participants);
+});
+// 노드 클릭 이벤트 추가
+nodeGroups.on("click", async function(event, d) {
+    const nodeName = d.name.replace("#", ""); // # 제거
+    console.log("Node clicked:", nodeName); // 디버깅 로그
+
+    try {
+        const response = await fetch(`/script_data?node=${encodeURIComponent(nodeName)}`);
+        const scriptText = await response.text();
+
+        const selectedNodeContainer = document.getElementById('selected-node-container');
+        selectedNodeContainer.innerHTML = `
+            <div class="selected-node-box">
+                <h3>Script for Node: ${nodeName}</h3>
+                <pre>${scriptText}</pre>
+            </div>
+        `;
+
+        // Simulate Prompt Input 박스 업데이트 및 표시
+        const simulateContainer = document.getElementById('simulate-prompt-container');
+        simulateContainer.style.display = 'block'; // 박스 보이기
+        simulateContainer.querySelector('h3').innerText = `Simulate Prompt Input for Node: ${nodeName}`;
+        
+        // 텍스트 박스 활성화 및 메시지 업데이트
+        const promptInput = document.getElementById('prompt-input');
+        promptInput.disabled = false;
+        promptInput.placeholder = "Enter your prompt here..."; // 메시지 업데이트
+        document.getElementById('prompt-input').value = ''; // 입력 필드 초기화
+
+    } catch (error) {
+        console.error('Error fetching script data:', error);
+    }
+});
+
+
+                // 차트 이동 함수 수정
+                const scrollThumb = document.getElementById('scroll-thumb');
+                const scrollBar = document.getElementById('scroll-bar');
+                const chartWrapper = document.getElementById('chart-wrapper');
+                const chartContainer = document.getElementById('chart-container');
+
+                const containerWidth = chartContainer.offsetWidth;
+                const chartWidth = chartWrapper.scrollWidth;
+                const scrollBarWidth = scrollBar.offsetWidth;
+
+                // 스크롤 비율 계산
+                const scrollRatio = containerWidth / chartWidth;
+
+                // 스크롤 핸들 크기 설정
+                scrollThumb.style.width = `${scrollRatio * scrollBarWidth}px`;
+
+                // 핸들 이동 범위 및 차트 이동 설정
+                let isDragging = false;
+                let startX = 0;
+                let currentLeft = 0;
+
+                scrollThumb.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startX = e.pageX;
+                    document.body.style.userSelect = 'none'; // 텍스트 선택 방지
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+
+                    // 핸들 이동 거리 계산
+                    const deltaX = e.pageX - startX;
+                    startX = e.pageX;
+
+                    // 핸들 이동 범위 제한
+                    const maxLeft = scrollBarWidth - scrollThumb.offsetWidth;
+                    currentLeft = Math.min(Math.max(0, currentLeft + deltaX), maxLeft);
+
+                    // 핸들 위치 업데이트
+                    scrollThumb.style.left = `${currentLeft}px`;
+
+                    // 차트 이동 비율 계산
+                    const scrollPercent = currentLeft / maxLeft;
+                    const translateX = -(scrollPercent * (chartWidth - containerWidth));
+
+                    // 차트 이동
+                    chartWrapper.style.transform = `translateX(${translateX}px)`;
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    document.body.style.userSelect = ''; // 텍스트 선택 가능
+                });
+
+
+            } catch (error) {
+                console.error('Error fetching tree data:', error);
+            }
+        }
+
+        drawFlowChart();
+
+        document.getElementById('simulate-button').addEventListener('click', async () => {
+    const userInput = document.getElementById('prompt-input').value; // 입력값 가져오기
+    const selectedNode = document.querySelector('.selected-node-box h3')?.innerText?.split(': ')[1]; // 선택된 노드 이름 가져오기
+
+    if (!selectedNode || !userInput) { // 노드가 선택되지 않거나 입력값이 없을 경우 경고
+        alert('Please select a node and enter a prompt before simulating.');
+        return;
+    }
+
+    try {
+        // POST 요청 보내기
+        const response = await fetch('/add_sim', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                nodeName: selectedNode, // 선택된 노드 이름
+                Input: userInput, // 사용자 입력값
+            }),
+        });
+
+        if (response.ok) {
+            alert('Simulation request sent successfully.'); // 성공 메시지
+        } else {
+            alert('Failed to send simulation request. Please try again.'); // 실패 메시지
+        }
+    } catch (error) {
+        console.error('Error sending simulation request:', error); // 에러 로그
+        alert('An error occurred. Please try again.'); // 에러 메시지
+    }
+});
+// 노드 클릭 이벤트 핸들러
+nodeGroups.on("click", async function(event, d) {
+    const nodeName = d.name.replace("#", ""); // # 제거
+    console.log("Node clicked:", nodeName); // 디버깅 로그
+
+    try {
+        const response = await fetch(`/script_data?node=${encodeURIComponent(nodeName)}`);
+        const scriptText = await response.text();
+
+        const selectedNodeContainer = document.getElementById('selected-node-container');
+        selectedNodeContainer.innerHTML = `
+            <div class="selected-node-box">
+                <h3>Script for Node: ${nodeName}</h3>
+                <pre>${scriptText}</pre>
+            </div>
+        `;
+
+        // Simulate Prompt Input 박스 업데이트 및 표시
+        const simulateContainer = document.getElementById('simulate-prompt-container');
+        simulateContainer.style.display = 'block'; // 박스 보이기
+        simulateContainer.querySelector('h3').innerText = `Simulate Prompt Input for Node: ${nodeName}`;
+        document.getElementById('prompt-input').value = ''; // 입력 필드 초기화
+
+    } catch (error) {
+        console.error('Error fetching script data:', error);
+    }
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const promptInput = document.getElementById('prompt-input');
+    promptInput.disabled = true; // 기본적으로 비활성화
+    promptInput.placeholder = "Select a plot to enable this...";
+});
+
+
+    </script>
+    <div id="selected-node-container">
+    </div>
+    <div id="simulate-prompt-container" class="selected-node-box">
+        <h3>Simulate Prompt Input</h3>
+        <textarea id="prompt-input" placeholder="Select a plot to enable this..." 
+        disabled 
+        style="width: 100%; height: 120px; font-size: 16px; border-radius: 8px; padding: 10px; border: 1px solid #ddd;"></textarea>
+
+        <button id="simulate-button" style="display: block; margin: 20px auto; padding: 10px 30px; background-color: #4A90E2; color: white; font-size: 16px; border: none; border-radius: 8px; cursor: pointer;">Simulate</button>
+    </div>
+</body>
+</html>

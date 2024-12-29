@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2024-2 캡스톤디자인</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f4f4f4;
+            height: 100vh;
+        }
+
+        #main-container {
+            background-color: #333; /* 검은 배경 */
+            color: white; /* 글씨 흰색 */
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-align: center; /* 내용 중앙 정렬 */
+            width: 400px; /* 박스 너비 */
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: white;
+        }
+
+        nav {
+            margin-top: 20px;
+        }
+
+        nav li {
+            list-style: none;
+            margin: 30px 0; /* 버튼 간 간격 추가 */
+        }
+
+        nav li a {
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+            padding: 10px 20px; /* 버튼 크기 조정 */
+            background-color: #4A90E2; /* 새로운 버튼 배경색: 부드러운 파란색 */
+            border-radius: 8px; /* 둥근 모서리 */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        nav li a:hover {
+            background-color: #357ABD; /* 호버 시 진한 파란색 */
+            transform: translateY(-2px); /* 호버 시 살짝 위로 올라오는 효과 */
+        }
+
+        #uploadForm {
+            margin-top: 30px;
+            text-align: center;
+            background-color: rgb(197, 197, 197);
+            padding: 20px;
+            border: 1px solid lightgray;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #uploadForm label {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        #uploadForm input[type="file"] {
+            margin-top: 10px;
+            padding: 5px;
+            width: 100%;
+            border: 1px solid lightgray;
+            border-radius: 5px;
+        }
+
+        #uploadButton {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #uploadButton:hover {
+            background-color: #45a049;
+        }
+
+        #progressContainer {
+            margin-top: 20px;
+            font-size: 16px;
+            color: green;
+            white-space: pre-wrap;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="main-container">
+        <h1>2024-2 캡스톤디자인</h1>
+        <nav>
+            <li><a href="/tree">스토리 라인 그래프</a></li>
+            <li><a href="/scatter">이야기 전개 조절 그래프</a></li>
+            <li><a href="/radar">캐릭터 성격 차트</a></li>
+            <li><a href="/graph">인물관계도</a></li>
+        </nav>
+        <div id="uploadForm">
+            <form enctype="multipart/form-data">
+                <label for="file">스토리 파일 업로드</label>
+                <input type="file" id="file" name="file" required>
+                <button id="uploadButton" type="submit">업로드</button>
+            </form>
+        </div>
+        <div id="progressContainer"></div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadButton = document.getElementById('uploadButton');
+        const progressContainer = document.getElementById('progressContainer');
+
+        uploadForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); // 기본 폼 제출 방지
+
+            // 버튼 비활성화 및 상태 초기화
+            uploadButton.disabled = true;
+            uploadButton.textContent = '처리 중...';
+            progressContainer.textContent = "";
+
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            if (!file) {
+                progressContainer.textContent = '파일을 선택하세요.';
+                uploadButton.disabled = false;
+                uploadButton.textContent = '업로드';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload_script', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        progressContainer.textContent = decoder.decode(value); // 이전 내용 삭제 후 새 내용으로 교체
+                    }
+
+                    uploadButton.textContent = '업로드 완료';
+                } else {
+                    progressContainer.textContent = '오류 발생: 업로드 실패.';
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = '업로드';
+                }
+            } catch (error) {
+                progressContainer.textContent = `오류 발생: ${error.message}`;
+                uploadButton.disabled = false;
+                uploadButton.textContent = '업로드';
+            }
+        });
+    </script>
+</body>
+</html>

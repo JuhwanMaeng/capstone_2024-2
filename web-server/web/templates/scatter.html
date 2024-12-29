@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이야기 전개 조절 그래프</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js">
+document.addEventListener('DOMContentLoaded', function () {
+            // 더미 데이터 생성
+            const scenes = [130, 131, 132, 133, 134, 135, 136, 137, 138, 139];
+            const intensities = [3, 4, 5, 6, 7, 6, 5, 4, 3, 4]; // 초기 강도 값
+
+            const trace1 = {
+                x: scenes,
+                y: intensities,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Scene Intensity',
+                marker: { size: 12 },
+            };
+
+            const data = [trace1];
+
+            const layout = {
+                xaxis: {
+                    title: 'Scene',
+                    range: [130, 139], // Scene 범위 고정
+                },
+                yaxis: {
+                    title: 'Intensity',
+                    range: [0, 10], // 강도 범위
+                },
+                responsive: true, // 반응형 활성화
+            };
+
+            // Plotly를 사용하여 차트 생성
+            Plotly.newPlot('scatter-plot', data, layout);
+
+            // Apply Changes 버튼 클릭 시 데이터 변경
+            document.getElementById('apply-button').addEventListener('click', () => {
+                const selectedScene = parseInt(document.getElementById('scene-select').value, 10);
+                const newIntensity = parseInt(document.getElementById('intensity-select').value, 10);
+
+                if (!newIntensity || newIntensity < 1 || newIntensity > 10) {
+                    alert('Please enter a valid intensity between 1 and 10.');
+                    return;
+                }
+
+                // 데이터 업데이트
+                const index = scenes.indexOf(selectedScene);
+                if (index !== -1) {
+                    intensities[index] = newIntensity;
+                    Plotly.update('scatter-plot', { y: [intensities] }, layout);
+                    alert(`Scene ${selectedScene} intensity updated to ${newIntensity}.`);
+                }
+            });
+
+            // 창 크기 변경 시 차트 크기 다시 조정
+            window.addEventListener('resize', () => {
+                Plotly.Plots.resize('scatter-plot');
+            });
+        });
+
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+
+        nav {
+            width: 100%;
+            background: #333;
+            color: white;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li {
+            margin: 0;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav ul li a:hover {
+            background-color: #555;
+        }
+
+        h1 {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+
+        #scatter-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px; /* 최대 너비 제한 */
+            height: 70vh; /* 화면 높이에 비례 */
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #scatter-plot {
+            width: 100%; /* 부모 크기에 맞게 확장 */
+            height: 100%; /* 부모 크기에 맞게 확장 */
+            background-color: white;
+            border: 1px solid lightgray;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #control-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: white;
+            border: 1px solid lightgray;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #control-container h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .control-box {
+            margin-bottom: 15px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-box label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .control-box select,
+        .control-box input {
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid lightgray;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        #apply-button {
+            padding: 10px 20px;
+            font-size: 14px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #apply-button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">홈으로</a></li>
+            <li><a href="/tree">스토리 라인 그래프</a></li>
+            <li><a href="/radar">캐릭터 성격 차트</a></li>
+            <li><a href="/graph">인물관계도</a></li>
+        </ul>
+    </nav>
+    <h1>이야기 전개 조절 그래프</h1>
+    <!-- Scatter Plot 영역 -->
+      <div id="control-container">
+        <h2>Modify and View Scene Intensity</h2>
+        <div class="control-box">
+            <label for="range-start">Scene Range Start:</label>
+            <input type="number" id="range-start" min="0" placeholder="Enter start scene (e.g., 130)">
+        </div>
+        <div class="control-box">
+            <label for="range-end">Scene Range End:</label>
+            <input type="number" id="range-end" min="0" placeholder="Enter end scene (e.g., 139)">
+        </div>
+        <button id="update-range-button">Update Range</button>
+
+        <div class="control-box">
+        <label for="scene-input">Change Scene:</label>
+        <input type="number" id="scene-input" min="130" max="139" placeholder="Enter scene (130-139)">
+    </div>
+    <div class="control-box">
+        <label for="intensity-select">Change Intensity:</label>
+        <input type="number" id="intensity-select" min="1" max="10" step="1" placeholder="Enter intensity (1-10)">
+    </div>
+    <button id="apply-button">Apply Changes</button>
+    <div id="scatter-container">
+        <div id="scatter-plot"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const scenes = [130, 131, 132, 133, 134, 135, 136, 137, 138, 139];
+            const intensities = [1, 3, 2, 4, 5, 6, 7, 5, 3, 4];
+            const trace1 = {
+            x: scenes,
+            y: intensities,
+            mode: 'lines+markers',
+            type: 'scatter',
+            name: 'Scene Intensity',
+            marker: { size: 12 },
+        };
+
+        const data = [trace1];
+
+        const layout = {
+            xaxis: {
+                title: 'Scene',
+                range: [130, 139], // Scene 범위 고정
+            },
+            yaxis: {
+                title: 'Intensity',
+                range: [0, 10], // 강도 범위
+            },
+            responsive: true,
+        };
+
+            // Plotly를 사용하여 차트 생성
+            Plotly.newPlot('scatter-plot', data, layout);
+
+            // 창 크기 변경 시 차트 크기 다시 조정
+            window.addEventListener('resize', () => {
+                Plotly.Plots.resize('scatter-plot');
+            });
+        });
+    </script>
+</body>
+</html>

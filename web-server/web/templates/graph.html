@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>인물 관계도</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        nav {
+            width: 100%;
+            background: #333;
+            color: white;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li {
+            margin: 0;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav ul li a:hover {
+            background-color: #555;
+        }
+
+        h1 {
+            margin: 20px 0;
+        }
+
+        #network-container {
+            width: 90%;
+            max-width: 1000px;
+            height: 600px;
+            border: 1px solid lightgray;
+            box-sizing: border-box;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #edge-select {
+            margin-bottom: 10px;
+        }
+
+        #modify-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        #modify-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">홈으로</a></li>
+            <li><a href="/storyline">스토리 라인 그래프</a></li>
+            <li><a href="/interaction">이야기 전개 조절</a></li>
+            <li><a href="/character">캐릭터 성격 분석</a></li>
+        </ul>
+    </nav>
+    <h1>인물 관계도</h1>
+    <div id="network-container"></div>
+    <div id="controls">
+        <select id="edge-select"></select>
+        <button id="modify-btn">관계 수정</button>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+    const container = document.getElementById('network-container');
+    const edgeSelect = document.getElementById('edge-select');
+    const modifyBtn = document.getElementById('modify-btn');
+
+    let nodes = [];
+    let edges = [];
+
+    try {
+        const response = await fetch("/graph_data");
+        const graphData = await response.json();
+        nodes = graphData.nodes;
+        edges = graphData.edges;
+    } catch (error) {
+        console.error("Error fetching graph data:", error);
+        alert("Failed to load graph data");
+    }
+
+    const data = { nodes, edges };
+
+    const options = {
+        nodes: {
+            borderWidth: 2,
+            size: 30,
+            color: { border: '#222222', background: '#666666' },
+            font: { color: '#000000' }
+        },
+        edges: {
+            width: 2,
+            smooth: { type: 'curvedCW' },
+            font: { align: 'horizontal' },
+        },
+        physics: {
+            enabled: true,
+            repulsion: {
+                centralGravity: 0.01,
+                springLength: 500,
+                springConstant: 0.005,
+                nodeDistance: 600,
+                damping: 0.09,
+            }
+        },
+        interaction: { hover: true, dragNodes: true }
+    };
+
+    const network = new vis.Network(container, data, options);
+
+    const updateEdgeSelect = () => {
+        edgeSelect.innerHTML = '';
+        edges.forEach(edge => {
+            const fromLabel = nodes.find(node => node.id === edge.from)?.label || edge.from;
+            const toLabel = nodes.find(node => node.id === edge.to)?.label || edge.to;
+            const option = document.createElement('option');
+            option.value = edge.id;
+            option.textContent = `${fromLabel} -> ${toLabel} (현재 값: ${edge.weight})`;
+            edgeSelect.appendChild(option);
+        });
+    };
+
+    updateEdgeSelect();
+
+    modifyBtn.addEventListener('click', () => {
+        const selectedEdgeId = edgeSelect.value;
+        const newWeight = prompt('새로운 관계 값을 입력하세요 (양수: 호감, 음수: 적대):', '0');
+        const parsedWeight = parseInt(newWeight, 10);
+
+        if (isNaN(parsedWeight)) {
+            alert('올바른 숫자를 입력해주세요.');
+            return;
+        }
+
+        const edge = edges.find(e => e.id === selectedEdgeId);
+        if (edge) {
+            edge.weight = parsedWeight;
+            edge.label = `${parsedWeight}`;
+            edge.color = { color: parsedWeight > 0 ? '#2ecc71' : (parsedWeight < 0 ? '#e74c3c' : '#cccccc') };
+            network.setData({ nodes, edges });
+            updateEdgeSelect();
+        }
+    });
+network.on("stabilized", () => {
+    network.moveTo({
+        position: { x: 0, y: 0 },
+        scale: 2, // 초기 줌 배율
+        animation: { duration: 500 }
+    });
+});
+        });
+    </script>
+</body>
+</html>

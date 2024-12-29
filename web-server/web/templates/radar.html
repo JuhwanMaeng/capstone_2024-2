@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캐릭터 성격 차트</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+
+        nav {
+            width: 100%;
+            background: #333;
+            color: white;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li {
+            margin: 0;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav ul li a:hover {
+            background-color: #555;
+        }
+
+        h1 {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+
+        #charts-container {
+            width: 90%;
+            max-width: 800px;
+        }
+
+        .chart-wrapper {
+            margin-bottom: 30px; /* 각 차트 간격 */
+            background-color: white;
+            border: 1px solid lightgray;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .chart-title {
+            font-size: 20px;
+            color: #555;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .chart {
+            width: 100%;
+            height: 300px; /* 고정 높이 */
+        }
+        #edit-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        width: 90%;
+        max-width: 800px;
+        margin: 20px auto;
+        background-color: white;
+        border: 1px solid lightgray;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+    }
+
+    .edit-title {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .edit-box {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .edit-box label {
+        font-size: 14px;
+        color: #555;
+        margin-right: 10px;
+    }
+
+    .edit-box select,
+    .edit-box input {
+        padding: 8px;
+        font-size: 14px;
+        border: 1px solid lightgray;
+        border-radius: 4px;
+        width: 100%;
+    }
+
+    button {
+        padding: 10px 15px;
+        font-size: 14px;
+        border: none;
+        border-radius: 4px;
+        background-color: #333;
+        color: white;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    button:hover {
+        background-color: #555;
+    }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">홈으로</a></li>
+            <li><a href="/tree">스토리 라인 그래프</a></li>
+            <li><a href="/scatter">이야기 전개 조절 그래프</a></li>
+            <li><a href="/graph">인물관계도</a></li>
+        </ul>
+    </nav>
+    <h1>캐릭터 성격 차트</h1>
+    <div id="edit-container">
+        <h2 class="edit-title">Modify Character Chart</h2>
+        <div class="edit-box">
+            <label for="plot-select">Select Plot:</label>
+            <select id="plot-select">
+                <!-- 플롯 목록이 동적으로 추가됩니다. -->
+            </select>
+        </div>
+        <div class="edit-box">
+            <label for="character-select">Select Character:</label>
+            <select id="character-select">
+                <!-- 캐릭터 목록이 동적으로 추가됩니다. -->
+            </select>
+        </div>
+        <div class="edit-box">
+            <label for="trait-select">Select Trait:</label>
+            <select id="trait-select">
+                <option value="Extraversion">Extraversion</option>
+                <option value="Agreeableness">Agreeableness</option>
+                <option value="Conscientiousness">Conscientiousness</option>
+                <option value="Neuroticism">Neuroticism</option>
+                <option value="Openness">Openness</option>
+            </select>
+        </div>
+        <div class="edit-box">
+            <label for="trait-value">New Value:</label>
+            <input type="number" id="trait-value" min="0" max="5" step="0.1" placeholder="Enter value (0-5)">
+        </div>
+        <div class="button-container">
+            <button id="update-button">Update Chart</button>
+            <button id="reset-button">Reset Filters</button>
+        </div>
+    </div>
+    <div id="charts-container"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            // 예시 데이터 요청 (캐릭터별 리스트 형태 데이터)
+            const response = await fetch('/radar_data');
+            const characters = await response.json();
+
+            // 부모 컨테이너
+            const chartsContainer = document.getElementById('charts-container');
+
+            characters.forEach(character => {
+                // 개별 차트를 위한 wrapper 생성
+                const chartWrapper = document.createElement('div');
+                chartWrapper.className = 'chart-wrapper';
+
+                const chartTitle = document.createElement('div');
+                chartTitle.className = 'chart-title';
+                chartTitle.innerText = character.name;
+
+                const chartDiv = document.createElement('div');
+                chartDiv.className = 'chart';
+                chartDiv.id = `chart-${character.name.replace(/\s+/g, '-')}`;
+
+                chartWrapper.appendChild(chartTitle);
+                chartWrapper.appendChild(chartDiv);
+                chartsContainer.appendChild(chartWrapper);
+
+                const data = [{
+                    type: 'scatterpolar',
+                    r: [...character.r, character.r[0]], // 순환
+                    theta: [...character.theta, character.theta[0]], // 순환
+                    fill: 'toself',
+                    name: character.name,
+                }];
+
+                const layout = {
+                    polar: {
+                        radialaxis: {
+                            visible: true,
+                            range: [0, 5],
+                        },
+                    },
+                    showlegend: false,
+                };
+
+                Plotly.newPlot(chartDiv.id, data, layout);
+            });
+        });
+        document.addEventListener('DOMContentLoaded', async function () {
+        const plotSelect = document.getElementById('plot-select');
+        const characterSelect = document.getElementById('character-select');
+        const updateButton = document.getElementById('update-button');
+        const resetButton = document.getElementById('reset-button');
+        const traitSelect = document.getElementById('trait-select');
+        const traitValueInput = document.getElementById('trait-value');
+
+        // 초기 플롯 및 캐릭터 데이터 로드
+        async function loadInitialData() {
+            const plotResponse = await fetch('/get_plot_radar');
+            const plotData = await plotResponse.json();
+            const characterResponse = await fetch('/radar_data');
+            const characterData = await characterResponse.json();
+
+            // 플롯 목록 추가
+            plotData.forEach(plot => {
+                const option = document.createElement('option');
+                option.value = plot.scene_number;
+                option.textContent = plot.scene_number;
+                plotSelect.appendChild(option);
+            });
+
+            // 캐릭터 목록 추가
+            characterData.forEach(character => {
+                const option = document.createElement('option');
+                option.value = character.name;
+                option.textContent = character.name;
+                characterSelect.appendChild(option);
+            });
+        }
+
+        // 차트 업데이트
+        updateButton.addEventListener('click', async () => {
+            const selectedPlot = plotSelect.value;
+            const selectedCharacter = characterSelect.value;
+            const selectedTrait = traitSelect.value;
+            const newValue = parseFloat(traitValueInput.value);
+
+            if (!selectedPlot || !selectedCharacter || !selectedTrait || isNaN(newValue)) {
+                alert('Please fill out all fields.');
+                return;
+            }
+
+            const updateResponse = await fetch('/update_character_trait', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plot: selectedPlot,
+                    character: selectedCharacter,
+                    trait: selectedTrait,
+                    value: newValue
+                })
+            });
+
+            if (updateResponse.ok) {
+                alert('Chart updated successfully!');
+            } else {
+                alert('Failed to update the chart.');
+            }
+        });
+
+        // 필터 초기화
+        resetButton.addEventListener('click', () => {
+            plotSelect.value = '';
+            characterSelect.value = '';
+            traitSelect.value = '';
+            traitValueInput.value = '';
+        });
+
+        await loadInitialData();
+    });
+    </script>
+</body>
+</html>
